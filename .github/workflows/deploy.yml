@@ -1,10 +1,10 @@
-name: Terraform Deploy to Azure
+ename: Terraform Deploy to Azure
 
 on:
   workflow_dispatch:
     inputs:
       APPLY:
-        description: '¿Ejecutar terraform apply?'
+        description: '¿Execute terraform apply?'
         required: true
         type: boolean
         default: false
