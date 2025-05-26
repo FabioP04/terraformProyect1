@@ -48,11 +48,6 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      #- name: Unlock Terraform State if locked
-       # run: |
-        #  echo "Intentando desbloquear estado Terraform si está bloqueado..."
-         # terraform force-unlock 7ea86927-56a8-0837-dc07-077801170edf || echo "No había bloqueo activo"
-
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
