@@ -1,4 +1,4 @@
-ename: Terraform Deploy to Azure
+name: Terraform Deploy to Azure
 
 on:
   workflow_dispatch:
