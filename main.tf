@@ -7,13 +7,6 @@ terraform {
       version = "~> 3.1.0"
     }
   }
-
-  backend "azurerm" {
-    resource_group_name  = "my-terraform-backend-rg"      # Cambia por tu resource group del backend
-    storage_account_name = "myterraformstorage"           # Cambia por tu cuenta de almacenamiento
-    container_name       = "tfstate"                       # Cambia por tu container
-    key                  = "terraform.tfstate"            # Archivo donde se guarda el estado
-  }
 }
 
 provider "azurerm" {
