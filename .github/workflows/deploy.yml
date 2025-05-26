@@ -52,7 +52,7 @@ jobs:
         run: terraform show tfplan
 
       - name: Upload Terraform Plan artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: tfplan
           path: tfplan
