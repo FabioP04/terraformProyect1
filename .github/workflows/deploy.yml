@@ -39,6 +39,9 @@ jobs:
             -backend-config="container_name=${{ secrets.AZURE_CONTAINER_NAME }}" \
             -backend-config="key=terraform.tfstate"
 
+      - name: Auto format Terraform files
+        run: terraform fmt -recursive
+
       - name: Terraform Format Check
         run: terraform fmt -check
 
@@ -51,11 +54,11 @@ jobs:
       - name: Show Terraform Plan
         run: terraform show tfplan
 
-      #- name: Upload Terraform Plan artifact
-       # uses: actions/upload-artifact@v2
-        #with:
-         # name: tfplan
-          #path: tfplan
+      # - name: Upload Terraform Plan artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: tfplan
+      #     path: tfplan
 
       - name: Terraform Apply
         if: ${{ github.event.inputs.APPLY }}
