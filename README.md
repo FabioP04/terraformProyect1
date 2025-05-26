@@ -11,7 +11,7 @@ az ad sp create-for-rbac --name "github-actions-terraform" --role="Contributor" 
 Use the last command's output to populate the following secrets used in the workflows:
 
 env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
