@@ -11,4 +11,5 @@ az account set --subscription "xxxxxxxxxxxxxxxx"
 az ad sp create-for-rbac --name "github-actions-terraform" --role="Contributor" --scopes="/subscriptions/xxxxxxxxxxxxxxxx" --sdk-auth
 
 Use the last command's output to populate the following secrets used in the workflows:
+
 ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID
