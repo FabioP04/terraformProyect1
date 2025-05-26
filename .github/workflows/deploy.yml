@@ -51,11 +51,11 @@ jobs:
       - name: Show Terraform Plan
         run: terraform show tfplan
 
-      - name: Upload Terraform Plan artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: tfplan
-          path: tfplan
+      #- name: Upload Terraform Plan artifact
+       # uses: actions/upload-artifact@v2
+        #with:
+         # name: tfplan
+          #path: tfplan
 
       - name: Terraform Apply
         if: ${{ github.event.inputs.APPLY }}
