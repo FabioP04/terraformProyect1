@@ -59,4 +59,7 @@ jobs:
 
       - name: Terraform Apply
         if: ${{ github.event.inputs.APPLY }}
-        run: terraform apply -auto-approve tfplan
+        run: |
+          terraform apply -auto-approve tfplan
+          echo "Public IP:"
+          terraform output public_ip
