@@ -56,8 +56,8 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
-      - name: Export Terraform Plan to JSON
-        run: terraform show -json tfplan > tfplan.json
+      - name: Export Terraform Plan to pretty JSON
+        run: terraform show -json tfplan | jq '.' > tfplan.json
 
       - name: Upload Terraform Plan JSON artifact
         uses: actions/upload-artifact@v4
