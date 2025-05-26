@@ -51,14 +51,14 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
-      - name: Show Terraform Plan
-        run: terraform show tfplan
+      - name: Export Terraform Plan to JSON
+        run: terraform show -json tfplan > tfplan.json
 
-      # - name: Upload Terraform Plan artifact
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: tfplan
-      #     path: tfplan
+      - name: Upload Terraform Plan JSON artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-plan-json
+          path: tfplan.json
 
       - name: Terraform Apply
         if: ${{ github.event.inputs.APPLY == 'true' }}
