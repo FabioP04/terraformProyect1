@@ -76,24 +76,24 @@ resource "azurerm_lb_probe" "web_cluster_lb_probe" {
 }
 
 resource "azurerm_lb_rule" "web_cluster_lb_rule" {
-  name                           = "my-terraform-lb-rule"
-  loadbalancer_id                = azurerm_lb.web_cluster_lb.id
-  protocol                       = "Tcp"
-  frontend_port                  = 80
-  backend_port                   = var.server_port
-  frontend_ip_configuration_name = "my-terraform-lb-frontend-ip"
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
-  probe_id                       = azurerm_lb_probe.web_cluster_lb_probe.id
+  name                            = "my-terraform-lb-rule"
+  loadbalancer_id                 = azurerm_lb.web_cluster_lb.id
+  protocol                        = "Tcp"
+  frontend_port                   = 80
+  backend_port                    = var.server_port
+  frontend_ip_configuration_name  = "my-terraform-lb-frontend-ip"
+  backend_address_pool_ids        = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
+  probe_id                        = azurerm_lb_probe.web_cluster_lb_probe.id
 }
 
 resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
-  name                            = "my-terraform-vm-scale-set"
-  location                        = azurerm_resource_group.web_cluster_rg.location
-  resource_group_name             = azurerm_resource_group.web_cluster_rg.name
-  sku                             = "Standard_DS1_v2"
-  instances                       = 2
-  admin_username                  = "azureuser"
-  admin_password                  = "Password1234!"
+  name                             = "my-terraform-vm-scale-set"
+  location                         = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name              = azurerm_resource_group.web_cluster_rg.name
+  sku                              = "Standard_DS1_v2"
+  instances                        = 2
+  admin_username                   = "azureuser"
+  admin_password                   = "Password1234!"
   disable_password_authentication = false
 
   source_image_reference {
@@ -113,10 +113,10 @@ resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
     primary = true
 
     ip_configuration {
-      name                                    = "my-terraform-vm-ss-nic-ip"
-      primary                                 = true
-      subnet_id                               = azurerm_subnet.web_cluster_subnet.id
-      load_balancer_backend_address_pool_ids = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
+      name                                     = "my-terraform-vm-ss-nic-ip"
+      primary                                  = true
+      subnet_id                                = azurerm_subnet.web_cluster_subnet.id
+      load_balancer_backend_address_pool_ids   = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
     }
   }
 
@@ -127,14 +127,13 @@ resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
     type_handler_version = "2.1"
 
     settings = <<SETTINGS
-      {
-        "commandToExecute": "echo 'Hello, World' > index.html ; nohup busybox httpd -f -p ${var.server_port} &"
-      }
-    SETTINGS
+{
+  "commandToExecute": "echo 'Hello, World' > index.html ; nohup busybox httpd -f -p ${var.server_port} &"
+}
+SETTINGS
   }
 
   tags = {
     environment = "my-terraform-env"
   }
 }
-
