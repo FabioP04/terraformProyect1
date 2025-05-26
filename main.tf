@@ -9,10 +9,10 @@ terraform {
   }
 
   backend "azurerm" {
-    resource_group_name  = "mi-resource-group-backend"       # Cambia esto
-    storage_account_name = "mistorageaccount"                # Cambia esto
-    container_name       = "tfstate"                          # Cambia esto
-    key                  = "terraform.tfstate"
+    resource_group_name  = "my-terraform-backend-rg"      # Cambia por tu resource group del backend
+    storage_account_name = "myterraformstorage"           # Cambia por tu cuenta de almacenamiento
+    container_name       = "tfstate"                       # Cambia por tu container
+    key                  = "terraform.tfstate"            # Archivo donde se guarda el estado
   }
 }
 
@@ -20,15 +20,15 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "tfexample" {
+resource "azurerm_resource_group" "web_cluster_rg" {
   name     = "my-terraform-rg"
   location = "West Europe"
 }
 
-resource "azurerm_virtual_network" "tfexample" {
+resource "azurerm_virtual_network" "web_cluster_vnet" {
   name                = "my-terraform-vnet"
-  location            = azurerm_resource_group.tfexample.location
-  resource_group_name = azurerm_resource_group.tfexample.name
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
   address_space       = ["10.0.0.0/16"]
 
   tags = {
@@ -36,17 +36,17 @@ resource "azurerm_virtual_network" "tfexample" {
   }
 }
 
-resource "azurerm_subnet" "tfexample" {
+resource "azurerm_subnet" "web_cluster_subnet" {
   name                 = "my-terraform-subnet"
-  resource_group_name  = azurerm_resource_group.tfexample.name
-  virtual_network_name = azurerm_virtual_network.tfexample.name
+  resource_group_name  = azurerm_resource_group.web_cluster_rg.name
+  virtual_network_name = azurerm_virtual_network.web_cluster_vnet.name
   address_prefixes     = ["10.0.2.0/24"]
 }
 
-resource "azurerm_public_ip" "tfexample" {
+resource "azurerm_public_ip" "web_cluster_public_ip" {
   name                = "my-terraform-public-ip"
-  location            = azurerm_resource_group.tfexample.location
-  resource_group_name = azurerm_resource_group.tfexample.name
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
   allocation_method   = "Static"
 
   tags = {
@@ -54,14 +54,14 @@ resource "azurerm_public_ip" "tfexample" {
   }
 }
 
-resource "azurerm_lb" "tfexample" {
+resource "azurerm_lb" "web_cluster_lb" {
   name                = "my-terraform-lb"
-  location            = azurerm_resource_group.tfexample.location
-  resource_group_name = azurerm_resource_group.tfexample.name
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
 
   frontend_ip_configuration {
     name                 = "my-terraform-lb-frontend-ip"
-    public_ip_address_id = azurerm_public_ip.tfexample.id
+    public_ip_address_id = azurerm_public_ip.web_cluster_public_ip.id
   }
 
   tags = {
@@ -69,32 +69,32 @@ resource "azurerm_lb" "tfexample" {
   }
 }
 
-resource "azurerm_lb_backend_address_pool" "tfexample" {
+resource "azurerm_lb_backend_address_pool" "web_cluster_lb_backend_pool" {
   name            = "my-terraform-lb-backend-pool"
-  loadbalancer_id = azurerm_lb.tfexample.id
+  loadbalancer_id = azurerm_lb.web_cluster_lb.id
 }
 
-resource "azurerm_lb_probe" "tfexample" {
+resource "azurerm_lb_probe" "web_cluster_lb_probe" {
   name            = "my-terraform-lb-probe"
-  loadbalancer_id = azurerm_lb.tfexample.id
+  loadbalancer_id = azurerm_lb.web_cluster_lb.id
   port            = var.server_port
 }
 
-resource "azurerm_lb_rule" "tfexample" {
+resource "azurerm_lb_rule" "web_cluster_lb_rule" {
   name                           = "my-terraform-lb-rule"
-  loadbalancer_id                = azurerm_lb.tfexample.id
+  loadbalancer_id                = azurerm_lb.web_cluster_lb.id
   protocol                       = "Tcp"
   frontend_port                  = 80
   backend_port                   = var.server_port
   frontend_ip_configuration_name = "my-terraform-lb-frontend-ip"
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.tfexample.id]
-  probe_id                       = azurerm_lb_probe.tfexample.id
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
+  probe_id                       = azurerm_lb_probe.web_cluster_lb_probe.id
 }
 
-resource "azurerm_linux_virtual_machine_scale_set" "tfexample" {
+resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
   name                            = "my-terraform-vm-scale-set"
-  location                        = azurerm_resource_group.tfexample.location
-  resource_group_name             = azurerm_resource_group.tfexample.name
+  location                        = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name             = azurerm_resource_group.web_cluster_rg.name
   sku                             = "Standard_DS1_v2"
   instances                       = 2
   admin_username                  = "azureuser"
@@ -118,10 +118,10 @@ resource "azurerm_linux_virtual_machine_scale_set" "tfexample" {
     primary = true
 
     ip_configuration {
-      name                                   = "my-terraform-vm-ss-nic-ip"
-      primary                                = true
-      subnet_id                              = azurerm_subnet.tfexample.id
-      load_balancer_backend_address_pool_ids = [azurerm_lb_backend_address_pool.tfexample.id]
+      name                                    = "my-terraform-vm-ss-nic-ip"
+      primary                                 = true
+      subnet_id                               = azurerm_subnet.web_cluster_subnet.id
+      load_balancer_backend_address_pool_ids = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
     }
   }
 
@@ -142,3 +142,4 @@ resource "azurerm_linux_virtual_machine_scale_set" "tfexample" {
     environment = "my-terraform-env"
   }
 }
+
