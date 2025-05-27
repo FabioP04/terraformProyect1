@@ -1,5 +1,6 @@
 name: Terraform Deploy to Azure
 
+#Triggers workflow with APPLY input variable to choose wether it executes terraform apply or not
 on:
   workflow_dispatch:
     inputs:
@@ -16,21 +17,25 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
 
+#Sets the environment variables needed for the azurerm provider using secrets
     env:
       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
+#Downloads terraform configuration files
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+#Installs terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
 
+#Starts terraform using secrets to specify the local backend's storage account and container
       - name: Terraform Init with backend config
         run: |
           terraform init \
@@ -51,15 +56,18 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
-      - name: Export Terraform Plan to pretty JSON
+#Uses jq command to format the plan file
+      - name: Export Terraform Plan to readable JSON
         run: terraform show -json tfplan | jq '.' > tfplan.json
 
+#Exports the readable json as an artifact for later logging
       - name: Upload Terraform Plan JSON artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-json
           path: tfplan.json
 
+#Executes terraform apply only if specified on the workflow dispatch
       - name: Terraform Apply
         if: ${{ github.event.inputs.APPLY == 'true' }}
         run: |
