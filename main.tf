@@ -38,6 +38,35 @@ resource "azurerm_subnet" "web_cluster_subnet" {
   address_prefixes     = ["10.0.2.0/24"]
 }
 
+# --- Nuevo NSG para el VMSS para permitir tráfico HTTP (puerto 80) ---
+resource "azurerm_network_security_group" "vmss_nsg" {
+  name                = "vmss-nsg"
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
+
+  security_rule {
+    name                       = "Allow-HTTP-Inbound"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  tags = {
+    environment = "my-terraform-env"
+  }
+}
+
+# Asociar NSG con la subnet donde está el VMSS
+resource "azurerm_subnet_network_security_group_association" "web_cluster_subnet_nsg_assoc" {
+  subnet_id                 = azurerm_subnet.web_cluster_subnet.id
+  network_security_group_id = azurerm_network_security_group.vmss_nsg.id
+}
+
 resource "azurerm_public_ip" "web_cluster_public_ip" {
   name                = "my-terraform-public-ip"
   location            = azurerm_resource_group.web_cluster_rg.location
@@ -138,7 +167,7 @@ SETTINGS
   }
 }
 
-# Security Group for Monitoring VM
+# Security Group for Monitoring VM, actualizado para permitir también HTTP puerto 80
 
 resource "azurerm_network_security_group" "monitoring_nsg" {
   name                = "monitoring-nsg"
@@ -165,6 +194,19 @@ resource "azurerm_network_security_group" "monitoring_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # Nueva regla para HTTP puerto 80
+  security_rule {
+    name                       = "Allow-HTTP"
+    priority                   = 1003
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
