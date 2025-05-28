@@ -230,40 +230,59 @@ resource "azurerm_linux_virtual_machine" "monitoring_vm" {
     storage_account_type = "Standard_LRS"
   }
 
+  custom_data = base64encode(<<EOF
+#!/bin/bash
+# Actualiza sistema
+apt-get update -y
+apt-get install -y wget curl gnupg2 software-properties-common
+
+# Instala Prometheus
+useradd --no-create-home --shell /bin/false prometheus
+mkdir /etc/prometheus /var/lib/prometheus
+wget https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz
+tar -xzf prometheus-2.52.0.linux-amd64.tar.gz
+cd prometheus-2.52.0.linux-amd64
+cp prometheus promtool /usr/local/bin/
+cp -r consoles console_libraries /etc/prometheus/
+cat <<PROMEOF > /etc/prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: 'vmss'
+    static_configs:
+      - targets: ['localhost:9090']
+PROMEOF
+cat <<SERVICE > /etc/systemd/system/prometheus.service
+[Unit]
+Description=Prometheus
+After=network.target
+
+[Service]
+User=prometheus
+ExecStart=/usr/local/bin/prometheus \\
+  --config.file=/etc/prometheus/prometheus.yml \\
+  --storage.tsdb.path=/var/lib/prometheus
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+systemctl daemon-reexec
+systemctl daemon-reload
+systemctl enable prometheus
+systemctl start prometheus
+
+# Instala Grafana
+wget -q -O - https://packages.grafana.com/gpg.key | apt-key add -
+add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
+apt-get update -y
+apt-get install -y grafana
+systemctl enable grafana-server
+systemctl start grafana-server
+EOF
+  )
+
   tags = {
     environment = "my-terraform-env"
   }
-
-  provisioner "remote-exec" {
-    connection {
-      type     = "ssh"
-      user     = "azureuser"
-      password = "Password1234!"
-      host     = azurerm_public_ip.monitoring_public_ip.ip_address
-    }
-    inline = [
-      "sudo apt-get update",
-      "sudo apt-get install -y wget apt-transport-https software-properties-common",
-      "wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -",
-      "echo 'deb https://packages.grafana.com/oss/deb stable main' | sudo tee /etc/apt/sources.list.d/grafana.list",
-      "sudo apt-get update",
-      "sudo apt-get install -y grafana",
-      "sudo systemctl enable grafana-server",
-      "sudo systemctl start grafana-server",
-      "sudo useradd --no-create-home --shell /bin/false prometheus || true",
-      "sudo mkdir /etc/prometheus",
-      "sudo mkdir /var/lib/prometheus",
-      "wget https://github.com/prometheus/prometheus/releases/download/v2.44.0/prometheus-2.44.0.linux-amd64.tar.gz",
-      "tar xvf prometheus-2.44.0.linux-amd64.tar.gz",
-      "sudo cp prometheus-2.44.0.linux-amd64/prometheus /usr/local/bin/",
-      "sudo cp prometheus-2.44.0.linux-amd64/promtool /usr/local/bin/",
-      "sudo cp -r prometheus-2.44.0.linux-amd64/consoles /etc/prometheus",
-      "sudo cp -r prometheus-2.44.0.linux-amd64/console_libraries /etc/prometheus",
-      "sudo chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus",
-      "sudo bash -c 'cat > /etc/systemd/system/prometheus.service << EOF\n[Unit]\nDescription=Prometheus\nWants=network-online.target\nAfter=network-online.target\n\n[Service]\nUser=prometheus\nGroup=prometheus\nType=simple\nExecStart=/usr/local/bin/prometheus \\\n  --config.file /etc/prometheus/prometheus.yml \\\n  --storage.tsdb.path /var/lib/prometheus/ \\\n  --web.console.templates=/etc/prometheus/consoles \\\n  --web.console.libraries=/etc/prometheus/console_libraries\n\n[Install]\nWantedBy=multi-user.target\nEOF'",
-      "sudo systemctl daemon-reload",
-      "sudo systemctl enable prometheus",
-      "sudo systemctl start prometheus"
-    ]
-  }
+}
 }
