@@ -168,6 +168,53 @@ resource "azurerm_network_interface" "monitoring_nic" {
   }
 }
 
+resource "azurerm_network_security_group" "monitoring_nsg" {
+  name                = "monitoring-nsg"
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
+
+  security_rule {
+    name                       = "Allow-Prometheus"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "9090"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "Allow-Grafana"
+    priority                   = 1002
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "Allow-SSH"
+    priority                   = 1003
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_network_interface_security_group_association" "monitoring_nic_nsg_assoc" {
+  network_interface_id      = azurerm_network_interface.monitoring_nic.id
+  network_security_group_id = azurerm_network_security_group.monitoring_nsg.id
+}
+
 resource "azurerm_linux_virtual_machine" "monitoring_vm" {
   name                = "monitoring-vm"
   location            = azurerm_resource_group.web_cluster_rg.location
