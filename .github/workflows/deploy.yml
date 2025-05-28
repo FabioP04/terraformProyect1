@@ -1,76 +1,63 @@
-name: Terraform Deploy to Azure
+terraform {
+  required_version = ">= 0.14"
 
-#Triggers workflow with APPLY input variable to choose wether it executes terraform apply or not
-on:
-  workflow_dispatch:
-    inputs:
-      APPLY:
-        description: '¿Execute terraform apply?'
-        required: true
-        type: boolean
-        default: false
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.1.0"
+    }
+  }
 
-permissions:
-  contents: read
+  backend "azurerm" {}
+}
 
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
+provider "azurerm" {
+  features {}
+}
 
-#Sets the environment variables needed for the azurerm provider using secrets
-    env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+resource "azurerm_resource_group" "web_cluster_rg" {
+  name     = "my-terraform-rg"
+  location = "West Europe"
+}
 
-#Downloads terraform configuration files
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+resource "azurerm_virtual_network" "web_cluster_vnet" {
+  name                = "my-terraform-vnet"
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
+  address_space       = ["10.0.0.0/16"]
 
-#Installs terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
+  tags = {
+    environment = "my-terraform-env"
+  }
+}
 
-#Starts terraform using secrets to specify the local backend's storage account and container
-      - name: Terraform Init with backend config
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP }}" \
-            -backend-config="storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
-            -backend-config="container_name=${{ secrets.AZURE_CONTAINER_NAME }}" \
-            -backend-config="key=terraform.tfstate"
+resource "azurerm_subnet" "web_cluster_subnet" {
+  name                 = "my-terraform-subnet"
+  resource_group_name  = azurerm_resource_group.web_cluster_rg.name
+  virtual_network_name = azurerm_virtual_network.web_cluster_vnet.name
+  address_prefixes     = ["10.0.2.0/24"]
+}
 
-      - name: Auto format Terraform files
-        run: terraform fmt -recursive
+resource "azurerm_public_ip" "web_cluster_public_ip" {
+  name                = "my-terraform-public-ip"
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
+  allocation_method   = "Static"
 
-      - name: Terraform Format Check
-        run: terraform fmt -check
+  tags = {
+    environment = "my-terraform-env"
+  }
+}
 
-      - name: Terraform Validate
-        run: terraform validate
+resource "azurerm_lb" "web_cluster_lb" {
+  name                = "my-terraform-lb"
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
 
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
+  frontend_ip_configuration {
+    name                 = "my-terraform-lb-frontend-ip"
+    public_ip_address_id = azurerm_public_ip.web_cluster_public_ip.id
+  }
 
-#Uses jq command to format the plan file
-      - name: Export Terraform Plan to readable JSON
-        run: terraform show -json tfplan | jq '.' > tfplan.json
-
-#Exports the readable json as an artifact for later logging
-      - name: Upload Terraform Plan JSON artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan-json
-          path: tfplan.json
-
-#Executes terraform apply only if specified on the workflow dispatch
-      - name: Terraform Apply
-        if: ${{ github.event.inputs.APPLY == 'true' }}
-        run: |
-          terraform apply -auto-approve tfplan
-          echo "Public IP:"
-          terraform output public_ip
+  tags = {
+    environmen
