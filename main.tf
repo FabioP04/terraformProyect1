@@ -38,40 +38,6 @@ resource "azurerm_subnet" "web_cluster_subnet" {
   address_prefixes     = ["10.0.2.0/24"]
 }
 
-resource "azurerm_network_security_group" "monitoring_nsg" {
-  name                = "monitoring-nsg"
-  location            = azurerm_resource_group.web_cluster_rg.location
-  resource_group_name = azurerm_resource_group.web_cluster_rg.name
-
-  security_rule {
-    name                       = "Allow-Prometheus"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "9090"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "Allow-Grafana"
-    priority                   = 1002
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "3000"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  tags = {
-    environment = "my-terraform-env"
-  }
-}
-
 resource "azurerm_public_ip" "web_cluster_public_ip" {
   name                = "my-terraform-public-ip"
   location            = azurerm_resource_group.web_cluster_rg.location
@@ -172,7 +138,41 @@ SETTINGS
   }
 }
 
-# Máquina de monitorización
+# Security Group for Monitoring VM
+
+resource "azurerm_network_security_group" "monitoring_nsg" {
+  name                = "monitoring-nsg"
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
+
+  security_rule {
+    name                       = "Allow-Prometheus"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "9090"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "Allow-Grafana"
+    priority                   = 1002
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  tags = {
+    environment = "my-terraform-env"
+  }
+}
 
 resource "azurerm_public_ip" "monitoring_public_ip" {
   name                = "monitoring-public-ip"
@@ -189,7 +189,6 @@ resource "azurerm_network_interface" "monitoring_nic" {
   name                = "monitoring-nic"
   location            = azurerm_resource_group.web_cluster_rg.location
   resource_group_name = azurerm_resource_group.web_cluster_rg.name
-  network_security_group_id = azurerm_network_security_group.monitoring_nsg.id
 
   ip_configuration {
     name                          = "internal"
@@ -203,13 +202,18 @@ resource "azurerm_network_interface" "monitoring_nic" {
   }
 }
 
+resource "azurerm_network_interface_security_group_association" "monitoring_nic_nsg_assoc" {
+  network_interface_id      = azurerm_network_interface.monitoring_nic.id
+  network_security_group_id = azurerm_network_security_group.monitoring_nsg.id
+}
+
 resource "azurerm_linux_virtual_machine" "monitoring_vm" {
-  name                            = "monitoring-vm"
-  location                        = azurerm_resource_group.web_cluster_rg.location
-  resource_group_name             = azurerm_resource_group.web_cluster_rg.name
-  size                            = "Standard_DS1_v2"
-  admin_username                 = "azureuser"
-  admin_password                 = "Password1234!"
+  name                = "monitoring-vm"
+  location            = azurerm_resource_group.web_cluster_rg.location
+  resource_group_name = azurerm_resource_group.web_cluster_rg.name
+  size                = "Standard_DS1_v2"
+  admin_username      = "azureuser"
+  admin_password      = "Password1234!"
   disable_password_authentication = false
 
   network_interface_ids = [azurerm_network_interface.monitoring_nic.id]
@@ -230,24 +234,36 @@ resource "azurerm_linux_virtual_machine" "monitoring_vm" {
     environment = "my-terraform-env"
   }
 
-  # Instala Prometheus y Grafana usando VM Extension
-}
-
-resource "azurerm_virtual_machine_extension" "monitoring_vm_extension" {
-  name                 = "install-prometheus-grafana"
-  virtual_machine_id   = azurerm_linux_virtual_machine.monitoring_vm.id
-  publisher            = "Microsoft.Azure.Extensions"
-  type                 = "CustomScript"
-  type_handler_version = "2.1"
-
-  settings = <<SETTINGS
-{
-  "commandToExecute": "sudo apt-get update && sudo apt-get install -y wget apt-transport-https software-properties-common && \
-wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add - && \
-echo 'deb https://packages.grafana.com/oss/deb stable main' | sudo tee -a /etc/apt/sources.list.d/grafana.list && \
-sudo apt-get update && sudo apt-get install -y grafana prometheus && \
-sudo systemctl enable prometheus && sudo systemctl start prometheus && \
-sudo systemctl enable grafana-server && sudo systemctl start grafana-server"
-}
-SETTINGS
+  provisioner "remote-exec" {
+    connection {
+      type     = "ssh"
+      user     = "azureuser"
+      password = "Password1234!"
+      host     = azurerm_public_ip.monitoring_public_ip.ip_address
+    }
+    inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y wget apt-transport-https software-properties-common",
+      "wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -",
+      "echo 'deb https://packages.grafana.com/oss/deb stable main' | sudo tee /etc/apt/sources.list.d/grafana.list",
+      "sudo apt-get update",
+      "sudo apt-get install -y grafana",
+      "sudo systemctl enable grafana-server",
+      "sudo systemctl start grafana-server",
+      "sudo useradd --no-create-home --shell /bin/false prometheus || true",
+      "sudo mkdir /etc/prometheus",
+      "sudo mkdir /var/lib/prometheus",
+      "wget https://github.com/prometheus/prometheus/releases/download/v2.44.0/prometheus-2.44.0.linux-amd64.tar.gz",
+      "tar xvf prometheus-2.44.0.linux-amd64.tar.gz",
+      "sudo cp prometheus-2.44.0.linux-amd64/prometheus /usr/local/bin/",
+      "sudo cp prometheus-2.44.0.linux-amd64/promtool /usr/local/bin/",
+      "sudo cp -r prometheus-2.44.0.linux-amd64/consoles /etc/prometheus",
+      "sudo cp -r prometheus-2.44.0.linux-amd64/console_libraries /etc/prometheus",
+      "sudo chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus",
+      "sudo bash -c 'cat > /etc/systemd/system/prometheus.service << EOF\n[Unit]\nDescription=Prometheus\nWants=network-online.target\nAfter=network-online.target\n\n[Service]\nUser=prometheus\nGroup=prometheus\nType=simple\nExecStart=/usr/local/bin/prometheus \\\n  --config.file /etc/prometheus/prometheus.yml \\\n  --storage.tsdb.path /var/lib/prometheus/ \\\n  --web.console.templates=/etc/prometheus/consoles \\\n  --web.console.libraries=/etc/prometheus/console_libraries\n\n[Install]\nWantedBy=multi-user.target\nEOF'",
+      "sudo systemctl daemon-reload",
+      "sudo systemctl enable prometheus",
+      "sudo systemctl start prometheus"
+    ]
+  }
 }
