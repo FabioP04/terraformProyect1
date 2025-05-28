@@ -128,7 +128,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
 
     settings = <<SETTINGS
 {
-  "commandToExecute": "echo 'Hello, World' > index.html ; nohup busybox httpd -f -p ${var.server_port} &"
+  "commandToExecute": "echo 'Hello, World from my web cluster' > index.html ; nohup busybox httpd -f -p ${var.server_port} &"
 }
 SETTINGS
   }
