@@ -285,4 +285,3 @@ EOF
     environment = "my-terraform-env"
   }
 }
-}
