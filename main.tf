@@ -44,10 +44,7 @@ resource "azurerm_public_ip" "web_cluster_public_ip" {
   resource_group_name = azurerm_resource_group.web_cluster_rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
-
-  dns_settings {
-    domain_name_label = "webappterraformfabiopp"  # <== Unique
-  }
+  domain_name_label   = "webappterraformfabiopp"
 
   tags = {
     environment = "my-terraform-env"
