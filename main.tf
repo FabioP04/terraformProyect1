@@ -1,4 +1,3 @@
-
 terraform {
   required_version = ">= 0.14"
 
@@ -44,6 +43,11 @@ resource "azurerm_public_ip" "web_cluster_public_ip" {
   location            = azurerm_resource_group.web_cluster_rg.location
   resource_group_name = azurerm_resource_group.web_cluster_rg.name
   allocation_method   = "Static"
+  sku                 = "Standard"
+
+  dns_settings {
+    domain_name_label = "webappterraformfabiopp"  # <== Unique
+  }
 
   tags = {
     environment = "my-terraform-env"
@@ -84,7 +88,7 @@ resource "azurerm_lb_rule" "web_cluster_lb_rule" {
   backend_port                    = var.server_port
   frontend_ip_configuration_name  = "my-terraform-lb-frontend-ip"
   backend_address_pool_ids        = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
-  probe_id                        = azurerm_lb_probe.web_cluster_lb_probe.id
+  probe_id                       = azurerm_lb_probe.web_cluster_lb_probe.id
 }
 
 resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
@@ -117,7 +121,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
       name                                     = "my-terraform-vm-ss-nic-ip"
       primary                                  = true
       subnet_id                                = azurerm_subnet.web_cluster_subnet.id
-      load_balancer_backend_address_pool_ids   = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
+      load_balancer_backend_address_pool_ids  = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
     }
   }
 
