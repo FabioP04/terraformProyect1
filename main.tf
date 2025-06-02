@@ -38,42 +38,11 @@ resource "azurerm_subnet" "web_cluster_subnet" {
   address_prefixes     = ["10.0.2.0/24"]
 }
 
-# New: Network Security Group allowing HTTP inbound
-resource "azurerm_network_security_group" "web_cluster_nsg" {
-  name                = "my-terraform-nsg"
-  location            = azurerm_resource_group.web_cluster_rg.location
-  resource_group_name = azurerm_resource_group.web_cluster_rg.name
-
-  security_rule {
-    name                       = "AllowHTTP"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  tags = {
-    environment = "my-terraform-env"
-  }
-}
-
-# New: Associate NSG with subnet
-resource "azurerm_subnet_network_security_group_association" "web_cluster_subnet_nsg_assoc" {
-  subnet_id                 = azurerm_subnet.web_cluster_subnet.id
-  network_security_group_id = azurerm_network_security_group.web_cluster_nsg.id
-}
-
 resource "azurerm_public_ip" "web_cluster_public_ip" {
   name                = "my-terraform-public-ip"
   location            = azurerm_resource_group.web_cluster_rg.location
   resource_group_name = azurerm_resource_group.web_cluster_rg.name
   allocation_method   = "Static"
-  sku                 = "Standard"
-  domain_name_label   = "webappterraformfabiopp"
 
   tags = {
     environment = "my-terraform-env"
@@ -84,7 +53,6 @@ resource "azurerm_lb" "web_cluster_lb" {
   name                = "my-terraform-lb"
   location            = azurerm_resource_group.web_cluster_rg.location
   resource_group_name = azurerm_resource_group.web_cluster_rg.name
-  sku                 = "Standard"
 
   frontend_ip_configuration {
     name                 = "my-terraform-lb-frontend-ip"
@@ -108,14 +76,14 @@ resource "azurerm_lb_probe" "web_cluster_lb_probe" {
 }
 
 resource "azurerm_lb_rule" "web_cluster_lb_rule" {
-  name                           = "my-terraform-lb-rule"
-  loadbalancer_id                = azurerm_lb.web_cluster_lb.id
-  protocol                      = "Tcp"
-  frontend_port                 = 80
-  backend_port                  = var.server_port
-  frontend_ip_configuration_name = "my-terraform-lb-frontend-ip"
-  backend_address_pool_ids      = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
-  probe_id                      = azurerm_lb_probe.web_cluster_lb_probe.id
+  name                            = "my-terraform-lb-rule"
+  loadbalancer_id                 = azurerm_lb.web_cluster_lb.id
+  protocol                        = "Tcp"
+  frontend_port                   = 80
+  backend_port                    = var.server_port
+  frontend_ip_configuration_name  = "my-terraform-lb-frontend-ip"
+  backend_address_pool_ids        = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
+  probe_id                        = azurerm_lb_probe.web_cluster_lb_probe.id
 }
 
 resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
@@ -145,10 +113,10 @@ resource "azurerm_linux_virtual_machine_scale_set" "web_cluster_vmss" {
     primary = true
 
     ip_configuration {
-      name                                    = "my-terraform-vm-ss-nic-ip"
-      primary                                 = true
-      subnet_id                               = azurerm_subnet.web_cluster_subnet.id
-      load_balancer_backend_address_pool_ids = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
+      name                                     = "my-terraform-vm-ss-nic-ip"
+      primary                                  = true
+      subnet_id                                = azurerm_subnet.web_cluster_subnet.id
+      load_balancer_backend_address_pool_ids   = [azurerm_lb_backend_address_pool.web_cluster_lb_backend_pool.id]
     }
   }
 
