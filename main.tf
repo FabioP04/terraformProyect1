@@ -43,6 +43,7 @@ resource "azurerm_public_ip" "web_cluster_public_ip" {
   location            = azurerm_resource_group.web_cluster_rg.location
   resource_group_name = azurerm_resource_group.web_cluster_rg.name
   allocation_method   = "Static"
+  domain_name_label   = "webappterraformfabiopp233"
 
   tags = {
     environment = "my-terraform-env"
