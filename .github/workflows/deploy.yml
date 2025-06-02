@@ -1,4 +1,4 @@
-name: Terraform Deploy to Azure
+name: Deploy to Azure
 
 #Triggers workflow with APPLY input variable to choose wether it executes terraform apply or not
 on:
