@@ -38,7 +38,7 @@ jobs:
 #Starts terraform using secrets to specify the local backend's storage account and container
       - name: Terraform Init with backend config
         run: |
-          terraform init \
+          terraform init -upgrade\
             -backend-config="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP }}" \
             -backend-config="storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=${{ secrets.AZURE_CONTAINER_NAME }}" \
