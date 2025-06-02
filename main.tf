@@ -55,6 +55,7 @@ resource "azurerm_lb" "web_cluster_lb" {
   name                = "my-terraform-lb"
   location            = azurerm_resource_group.web_cluster_rg.location
   resource_group_name = azurerm_resource_group.web_cluster_rg.name
+  sku = "Standard"
 
   frontend_ip_configuration {
     name                 = "my-terraform-lb-frontend-ip"
