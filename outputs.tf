@@ -1,4 +1,3 @@
-
 # Data source to access the properties of an existing Azure Public IP Address
 data "azurerm_public_ip" "web_cluster_public_ip_data" {
   name                = azurerm_public_ip.web_cluster_public_ip.name
@@ -8,4 +7,9 @@ data "azurerm_public_ip" "web_cluster_public_ip_data" {
 # Output variable: Public IP address
 output "public_ip" {
   value = data.azurerm_public_ip.web_cluster_public_ip_data.ip_address
+}
+
+# Output variable: Public DNS URL
+output "public_url" {
+  value = "http://${data.azurerm_public_ip.web_cluster_public_ip_data.fqdn}"
 }
